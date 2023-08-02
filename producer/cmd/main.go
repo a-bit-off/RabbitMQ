@@ -4,11 +4,22 @@ PRODUCER
 package main
 
 import (
+	"fmt"
 	"github.com/streadway/amqp"
 	"log"
+	"math/rand"
+	"time"
 )
 
 func main() {
+
+	for i := 0; i < 100; i++ {
+		time.Sleep(time.Second * time.Duration(rand.Intn(2)+1))
+		Producer(i)
+	}
+}
+
+func Producer(msgNumber int) {
 	log.Println("Start producer APP")
 
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
@@ -44,7 +55,7 @@ func main() {
 		false,
 		amqp.Publishing{
 			ContentType: "text/plain",
-			Body:        []byte("Hello RabbitMQ!")},
+			Body:        []byte(fmt.Sprintf("Message: %d", msgNumber))},
 	)
 	if err != nil {
 		log.Fatalf("Ошибка при публикации очереди: %v", err)

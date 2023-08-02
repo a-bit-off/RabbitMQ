@@ -26,6 +26,21 @@ func main() {
 	log.Println("Успешное открытие канала!")
 	defer ch.Close()
 
+	// для перестраховки, если producer не успел создать очередь -
+	// consumer создаст его сам
+	_, err = ch.QueueDeclare(
+		"TestQueue",
+		false,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		log.Fatalf("Ошибка при инициализации очереди: %v", err)
+	}
+	log.Println("Успешная инициализации очереди!")
+
 	msgs, err := ch.Consume(
 		"TestQueue",
 		"",
@@ -46,6 +61,7 @@ func main() {
 			fmt.Println(string(m.Body))
 		}
 	}()
+
 	log.Println("Успешное подключение к интерфейсу RabbitMQ")
 	log.Println("Ожидается ввод")
 	<-forever
