@@ -1,5 +1,5 @@
 /*
-CONSUMER
+CONSUMER ERROR
 */
 package main
 
@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	log.Println("Start consumer APP")
+	log.Println("Start consumers APP")
 
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil {
@@ -26,13 +26,29 @@ func main() {
 	log.Println("Успешное открытие канала!")
 	defer ch.Close()
 
+	// для перестраховки, если producer не успел создать - коммутатора
+	// consumers создаст его сам
+	err = ch.ExchangeDeclare(
+		"direct_logs",
+		"direct",
+		false,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		log.Fatalf("Ошибка при инициализации коммутатора: %v", err)
+	}
+	log.Println("Успешная инициализации коммутатора!")
+
 	// для перестраховки, если producer не успел создать очередь -
-	// consumer создаст его сам
-	_, err = ch.QueueDeclare(
-		"TestQueue",
+	// consumers создаст его сам
+	queue, err := ch.QueueDeclare(
+		"",
 		false,
-		false,
-		false,
+		true,
+		true,
 		false,
 		nil,
 	)
@@ -41,8 +57,19 @@ func main() {
 	}
 	log.Println("Успешная инициализации очереди!")
 
+	if err = ch.QueueBind(
+		queue.Name,
+		"error",
+		"direct_logs",
+		false,
+		nil,
+	); err != nil {
+		log.Fatalf("Ошибка при связке очереди: %v", err)
+	}
+	log.Println("Успешная связка очереди!")
+
 	msgs, err := ch.Consume(
-		"TestQueue",
+		queue.Name,
 		"",
 		true,
 		false,
@@ -66,6 +93,6 @@ func main() {
 	log.Println("Ожидается ввод")
 	<-forever
 
-	log.Println("End consumer APP")
+	log.Println("End consumers APP")
 
 }
